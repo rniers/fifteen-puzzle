@@ -8,14 +8,13 @@ import cats.syntax.all._
 
 object GameLoop extends IOApp {
 
-  val gameLoop: Stream[IO, PuzzleState] = {
-
+  val input: Stream[IO, PlayerMove] = {
     val terminal = TerminalBuilder.builder().system(true).build()
     terminal.enterRawMode()
 
     val reader = terminal.reader()
 
-    val userMoves: Stream[IO, PlayerMove] = Stream
+    Stream
       .repeatEval(IO(reader.read()))
       .collect {
         case 'w' => PlayerMove.Up
@@ -23,16 +22,15 @@ object GameLoop extends IOApp {
         case 'a' => PlayerMove.Left
         case 'd' => PlayerMove.Right
       }
+  }
+
+
+  val gameLoop: Stream[IO, PuzzleState] = {
 
     val initial = PuzzleState()
-
-    Stream
-      .emit(initial)
-      .append(
-        userMoves
-          .scan(initial)( (s, m) => s.takeMove(m) )
-          .takeWhile(!_.isSolved)
-      )
+    input
+      .scan(initial)( (s, m) => s.takeMove(m) )
+      .takeWhile(!_.isSolved)
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
